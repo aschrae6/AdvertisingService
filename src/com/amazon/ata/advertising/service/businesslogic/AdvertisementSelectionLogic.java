@@ -15,6 +15,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.lang.annotation.Target;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
@@ -84,7 +86,6 @@ public class AdvertisementSelectionLogic {
             //         a list of TargetingGroups
             //    so it's a list of lists of targetingGroups
             // so when I stream that list of lists, I get a stream of lists of targeting groups
-
 
 
             // having filtered out ads, then randomly return one of the remaining

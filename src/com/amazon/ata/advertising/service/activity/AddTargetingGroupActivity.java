@@ -54,15 +54,6 @@ public class AddTargetingGroupActivity {
             requestedTargetingPredicates,
             contentId));
 
-//        List<TargetingPredicate> targetingPredicates = new ArrayList<>();
-//        if (requestedTargetingPredicates != null) {
-//            for (com.amazon.ata.advertising.service.model.TargetingPredicate targetingPredicate :
-//                requestedTargetingPredicates) {
-//                TargetingPredicate predicate = TargetingPredicateTranslator.fromCoral(targetingPredicate);
-//                targetingPredicates.add(predicate);
-//            }
-//        }
-
         List<TargetingPredicate> targetingPredicates = Optional.ofNullable(requestedTargetingPredicates).stream()
                 .flatMap(Collection::stream)
                 .map(TargetingPredicateTranslator::fromCoral)
