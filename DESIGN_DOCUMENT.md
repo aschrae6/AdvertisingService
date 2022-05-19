@@ -48,7 +48,7 @@ marketplaceId is `1`. See [wiki](https://w.amazon.com/bin/view/MarketplaceID/) f
 A piece of content can have multiple targeting groups. For example, we can have a specific advertisement that is 
 displayed for customers who have spent at least $15 in the technical books category, but no more than $100 ***OR*** 
 customers who have spent at least $15 on logic books. Every targeting rule within a targeting group is AND'd together. 
-To reach customers that meet one criteria *or *another, we have to use multiple targeting groups.
+To reach customers that meet one criteria *or * another, we have to use multiple targeting groups.
 
 The click through rate tells us the probability that someone who sees this ad will click on it (values are from 0 to 1 
 inclusively). We separate click through rate by targeting group, because this advertisement may be incredibly popular 

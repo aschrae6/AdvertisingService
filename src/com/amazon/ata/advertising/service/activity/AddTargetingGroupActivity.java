@@ -13,18 +13,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 /**
  * Adds a new targeting group to an existing piece of advertising content based on the contentId specified. If a list of
  * targeting predicates is provided the initial targeting group will be created with those rules. Otherwise, the
  * targeting group will be created without any predicates, meaning it is viewable by any customer. Targeting groups are
- * given a click  through rate of 1 to start, so that they are guaranteed some initial impressions and a true
+ * given a click-through rate of 1 to start, so that they are guaranteed some initial impressions and a true
  * clickThroughRate can be learned.
  */
 public class AddTargetingGroupActivity {
-    public static final boolean IMPLEMENTED_STREAMS = false;
+    public static final boolean IMPLEMENTED_STREAMS = true;
     private static final Logger LOG = LogManager.getLogger(AddTargetingGroupActivity.class);
 
     private final TargetingGroupDao targetingGroupDao;
@@ -51,14 +54,19 @@ public class AddTargetingGroupActivity {
             requestedTargetingPredicates,
             contentId));
 
-        List<TargetingPredicate> targetingPredicates = new ArrayList<>();
-        if (requestedTargetingPredicates != null) {
-            for (com.amazon.ata.advertising.service.model.TargetingPredicate targetingPredicate :
-                requestedTargetingPredicates) {
-                TargetingPredicate predicate = TargetingPredicateTranslator.fromCoral(targetingPredicate);
-                targetingPredicates.add(predicate);
-            }
-        }
+//        List<TargetingPredicate> targetingPredicates = new ArrayList<>();
+//        if (requestedTargetingPredicates != null) {
+//            for (com.amazon.ata.advertising.service.model.TargetingPredicate targetingPredicate :
+//                requestedTargetingPredicates) {
+//                TargetingPredicate predicate = TargetingPredicateTranslator.fromCoral(targetingPredicate);
+//                targetingPredicates.add(predicate);
+//            }
+//        }
+
+        List<TargetingPredicate> targetingPredicates = Optional.ofNullable(requestedTargetingPredicates).stream()
+                .flatMap(Collection::stream)
+                .map(TargetingPredicateTranslator::fromCoral)
+                .collect(Collectors.toList());
 
         TargetingGroup targetingGroup = targetingGroupDao.create(contentId, targetingPredicates);
 

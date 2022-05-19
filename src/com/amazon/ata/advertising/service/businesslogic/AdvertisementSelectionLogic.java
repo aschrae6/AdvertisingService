@@ -4,6 +4,8 @@ import com.amazon.ata.advertising.service.dao.ReadableDao;
 import com.amazon.ata.advertising.service.model.AdvertisementContent;
 import com.amazon.ata.advertising.service.model.EmptyGeneratedAdvertisement;
 import com.amazon.ata.advertising.service.model.GeneratedAdvertisement;
+import com.amazon.ata.advertising.service.model.RequestContext;
+import com.amazon.ata.advertising.service.targeting.TargetingEvaluator;
 import com.amazon.ata.advertising.service.targeting.TargetingGroup;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -11,7 +13,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.annotation.Target;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 
 /**
@@ -47,7 +52,7 @@ public class AdvertisementSelectionLogic {
 
     /**
      * Gets all of the content and metadata for the marketplace and determines which content can be shown.  Returns the
-     * eligible content with the highest click through rate.  If no advertisement is available or eligible, returns an
+     * eligible content with the highest click-through rate.  If no advertisement is available or eligible, returns an
      * EmptyGeneratedAdvertisement.
      *
      * @param customerId - the customer to generate a custom advertisement for
@@ -62,11 +67,31 @@ public class AdvertisementSelectionLogic {
         } else {
             final List<AdvertisementContent> contents = contentDao.get(marketplaceId);
 
-            if (CollectionUtils.isNotEmpty(contents)) {
-                AdvertisementContent randomAdvertisementContent = contents.get(random.nextInt(contents.size()));
-                generatedAdvertisement = new GeneratedAdvertisement(randomAdvertisementContent);
-            }
+            // make a TargetingEvaluator to be able to filter out ads a customer is not eligible for
+            TargetingEvaluator targetingEvaluator =
+            // to make one you need a RequestContext which is filled by customerId and marketplaceId
+                    new TargetingEvaluator(new RequestContext(customerId, marketplaceId));
 
+            List<AdvertisementContent> eligibleAds = contents.stream()
+//            // where do I get a targeting group? ---- from the targetingGroupDao!
+//            // call get(contentId) on targetingGroupDao to get a List<TargetingGroup>
+                    .filter(content -> targetingGroupDao.get(content.getContentId()).stream()
+//            // then evaluate each TargetingGroup using the TargetingEvaluator
+                            .allMatch(targetingGroup -> targetingEvaluator.evaluate(targetingGroup).isTrue()))
+                    .collect(Collectors.toList());
+
+            // there's a list of advertisementContent, then each of those returns
+            //         a list of TargetingGroups
+            //    so it's a list of lists of targetingGroups
+            // so when I stream that list of lists, I get a stream of lists of targeting groups
+
+
+
+            // having filtered out ads, then randomly return one of the remaining
+            if (CollectionUtils.isNotEmpty(eligibleAds)) {
+                AdvertisementContent randomAd = eligibleAds.get(random.nextInt(eligibleAds.size()));
+                generatedAdvertisement = new GeneratedAdvertisement(randomAd);
+            }
         }
 
         return generatedAdvertisement;
