@@ -24,6 +24,7 @@ public class MT2IntrospectionTests {
             .withExactSimpleName("TargetingEvaluator")
             .findClassOrFail();
 
+
         Field implementedStreamsFlag = Stream.of(targetingEvaluator.getDeclaredFields())
             .filter(f -> f.getName().equals(IMPLEMENTED_CONCURRENCY_FIELD_NAME))
             .findFirst()
