@@ -50,7 +50,6 @@ public class AdvertisementSelectionLogicTest {
     public void setup() {
         initMocks(this);
         adSelectionService = new AdvertisementSelectionLogic(contentDao, targetingGroupDao);
-        adSelectionService.setRandom(random);
     }
 
     @Test
@@ -66,7 +65,7 @@ public class AdvertisementSelectionLogicTest {
     }
 
     @Test
-    public void selectAdvertisement_noContentForMarketplace_emptyAdReturned() throws InterruptedException {
+    public void selectAdvertisement_noContentForMarketplace_emptyAdReturned() {
         when(contentDao.get(MARKETPLACE_ID)).thenReturn(Collections.emptyList());
 
         GeneratedAdvertisement ad = adSelectionService.selectAdvertisement(CUSTOMER_ID, MARKETPLACE_ID);

@@ -12,7 +12,6 @@ import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicate
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -47,23 +46,19 @@ public class AddTargetingGroupActivity {
      * @return The service response
      */
     public AddTargetingGroupResponse addTargetingGroup(AddTargetingGroupRequest request) {
-        String contentId = request.getContentId();
-        List<com.amazon.ata.advertising.service.model.TargetingPredicate> requestedTargetingPredicates =
-            request.getTargetingPredicates();
         LOG.info(String.format("Adding targeting predicates [%s] to content with id: %s.",
-            requestedTargetingPredicates,
-            contentId));
+            request.getTargetingPredicates(),
+            request.getContentId()));
 
-        List<TargetingPredicate> targetingPredicates = Optional.ofNullable(requestedTargetingPredicates).stream()
+        List<TargetingPredicate> targetingPredicates = Optional.ofNullable(request.getTargetingPredicates()).stream()
                 .flatMap(Collection::stream)
                 .map(TargetingPredicateTranslator::fromCoral)
                 .collect(Collectors.toList());
 
-        TargetingGroup targetingGroup = targetingGroupDao.create(contentId, targetingPredicates);
+        TargetingGroup targetingGroup = targetingGroupDao.create(request.getContentId(), targetingPredicates);
 
         return AddTargetingGroupResponse.builder()
                 .withTargetingGroup(TargetingGroupTranslator.toCoral(targetingGroup))
                 .build();
     }
-
 }

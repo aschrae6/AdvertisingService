@@ -8,17 +8,16 @@ import com.amazon.ata.advertising.service.model.RequestContext;
 import com.amazon.ata.advertising.service.targeting.TargetingEvaluator;
 import com.amazon.ata.advertising.service.targeting.TargetingGroup;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.annotation.Target;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 
 /**
@@ -30,7 +29,6 @@ public class AdvertisementSelectionLogic {
 
     private final ReadableDao<String, List<AdvertisementContent>> contentDao;
     private final ReadableDao<String, List<TargetingGroup>> targetingGroupDao;
-    private Random random = new Random();
 
     /**
      * Constructor for AdvertisementSelectionLogic.
@@ -45,14 +43,6 @@ public class AdvertisementSelectionLogic {
     }
 
     /**
-     * Setter for Random class.
-     * @param random generates random number used to select advertisements.
-     */
-    public void setRandom(Random random) {
-        this.random = random;
-    }
-
-    /**
      * Gets all of the content and metadata for the marketplace and determines which content can be shown.  Returns the
      * eligible content with the highest click-through rate.  If no advertisement is available or eligible, returns an
      * EmptyGeneratedAdvertisement.
@@ -64,35 +54,28 @@ public class AdvertisementSelectionLogic {
      */
     public GeneratedAdvertisement selectAdvertisement(String customerId, String marketplaceId) {
         GeneratedAdvertisement generatedAdvertisement = new EmptyGeneratedAdvertisement();
+
         if (StringUtils.isEmpty(marketplaceId)) {
             LOG.warn("MarketplaceId cannot be null or empty. Returning empty ad.");
         } else {
-            final List<AdvertisementContent> contents = contentDao.get(marketplaceId);
-
-            // make a TargetingEvaluator to be able to filter out ads a customer is not eligible for
             TargetingEvaluator targetingEvaluator =
-            // to make one you need a RequestContext which is filled by customerId and marketplaceId
                     new TargetingEvaluator(new RequestContext(customerId, marketplaceId));
+            Comparator<TargetingGroup> clickThroughRateComparator =
+                    Comparator.comparingDouble(TargetingGroup::getClickThroughRate);
 
-            List<AdvertisementContent> eligibleAds = contents.stream()
-//            // where do I get a targeting group? ---- from the targetingGroupDao!
-//            // call get(contentId) on targetingGroupDao to get a List<TargetingGroup>
-                    .filter(content -> targetingGroupDao.get(content.getContentId()).stream()
-//            // then evaluate each TargetingGroup using the TargetingEvaluator
+            TreeMap<TargetingGroup, AdvertisementContent> adTree = new TreeMap<>(clickThroughRateComparator);
+
+            adTree.putAll(contentDao.get(marketplaceId).stream()
+                    .collect(Collectors.toMap(
+                            content -> targetingGroupDao.get(content.getContentId()).stream()
+                                    .max(clickThroughRateComparator),
+                            Function.identity()))
+                    .entrySet().stream()
+                    .filter(entry -> entry.getKey().stream()
                             .allMatch(targetingGroup -> targetingEvaluator.evaluate(targetingGroup).isTrue()))
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toMap(entry -> entry.getKey().orElseThrow(), Map.Entry::getValue)));
 
-            // there's a list of advertisementContent, then each of those returns
-            //         a list of TargetingGroups
-            //    so it's a list of lists of targetingGroups
-            // so when I stream that list of lists, I get a stream of lists of targeting groups
-
-
-            // having filtered out ads, then randomly return one of the remaining
-            if (CollectionUtils.isNotEmpty(eligibleAds)) {
-                AdvertisementContent randomAd = eligibleAds.get(random.nextInt(eligibleAds.size()));
-                generatedAdvertisement = new GeneratedAdvertisement(randomAd);
-            }
+            generatedAdvertisement = new GeneratedAdvertisement(adTree.lastEntry().getValue());
         }
 
         return generatedAdvertisement;

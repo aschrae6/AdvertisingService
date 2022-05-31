@@ -1,15 +1,11 @@
 package com.amazon.ata.advertising.service.targeting;
 
 import com.amazon.ata.advertising.service.model.RequestContext;
-import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicate;
 import com.amazon.ata.advertising.service.targeting.predicate.TargetingPredicateResult;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 /**
  * Evaluates TargetingPredicates for a given RequestContext.
@@ -34,29 +30,9 @@ public class TargetingEvaluator {
      * @return TRUE if all of the TargetingPredicates evaluate to TRUE against the RequestContext, FALSE otherwise.
      */
     public TargetingPredicateResult evaluate(TargetingGroup targetingGroup) {
-        List<TargetingPredicate> targetingPredicates = targetingGroup.getTargetingPredicates();
-        boolean allTruePredicates;
-
         ExecutorService executor = Executors.newCachedThreadPool();
 
-//        List<Future<TargetingPredicateResult>> futures = targetingPredicates.stream()
-//                .map(predicate -> executor.submit(() -> predicate.evaluate(requestContext)))
-//                .collect(Collectors.toList());
-//        executor.shutdown();
-//
-//        allTruePredicates = futures.stream()
-//                .map(targetingPredicate -> {
-//                    try {
-//                        return targetingPredicate.get();
-//                    } catch (InterruptedException | ExecutionException e) {
-//                        e.printStackTrace();
-//                        return TargetingPredicateResult.INDETERMINATE;
-//                    }
-//                })
-//                .allMatch(TargetingPredicateResult::isTrue);
-
-
-        allTruePredicates = targetingPredicates.stream()
+        boolean allTruePredicates = targetingGroup.getTargetingPredicates().stream()
                 .map(predicate -> executor.submit(() -> predicate.evaluate(requestContext)))
                 .map(predicateFuture -> {
                     try {
@@ -67,7 +43,6 @@ public class TargetingEvaluator {
                 })
                 .allMatch(TargetingPredicateResult::isTrue);
         executor.shutdown();
-
 
         return allTruePredicates ? TargetingPredicateResult.TRUE :
                                    TargetingPredicateResult.FALSE;
